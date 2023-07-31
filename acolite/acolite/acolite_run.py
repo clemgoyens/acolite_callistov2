@@ -8,35 +8,80 @@
 ##                2023-03-29 (AD) modified for CS tiff
 
 # AD
-def cleaning_4_CS(output_folder, L2W_delete = True):
+def cleaning_4_CS(output_folder, filetime, mask, L2W_delete=False):
     import os
+    import glob
     print("\n >> renaming for CALLISTO platform")
-    # rename CHL, SPM and delete others
-    all_files = [file for file in os.listdir(output_folder)]
-    chl_file = [file for file in all_files if 'chl' in file and '_CHL.tif' not in file][0]
-    spm_file = [file for file in all_files if 'SPM' in file and '_SPM.tif' not in file][0]
-    tur_file = [file for file in all_files if 'TUR' in file and '_TUR.tif' not in file][0]
 
-    image_date = "".join(spm_file.split('_')[2:5])
-    image_time = "".join(spm_file.split('_')[5:8])
+    nametime=filetime.strftime("%Y_%m_%d")
+    all_files=glob.glob('{}/*{}*'.format(output_folder, nametime))
 
-    os.rename(f'{output_folder}/{chl_file}', f'{output_folder}/{chl_file[0:7]}_{image_date}T{image_time}_CHL.tif')
-    os.rename(f'{output_folder}/{spm_file}', f'{output_folder}/{spm_file[0:7]}_{image_date}T{image_time}_SPM.tif')
-    os.rename(f'{output_folder}/{tur_file}', f'{output_folder}/{tur_file[0:7]}_{image_date}T{image_time}_TUR.tif')
+    print(all_files)
+    # chl_file = [file for file in all_files if 'chl_' in file and '_CHL.tif' not in file][0]
+    # spm_file = [file for file in all_files if 'SPM_' in file and '_SPM.tif' not in file][0]
+    # tur_file = [file for file in all_files if 'TUR_' in file and '_TUR.tif' not in file][0]
+    # print(chl_file)
+    # print(spm_file)
+    # print(tur_file)
+    # image_date = "".join(spm_file.split('_')[2:5])
+    # image_time = "".join(spm_file.split('_')[5:8])
+    #
+    # os.rename(f'{output_folder}/{chl_file}', f'{output_folder}/{chl_file[0:7]}_{image_date}T{image_time}_CHL.tif')
+    # os.rename(f'{output_folder}/{spm_file}', f'{output_folder}/{spm_file[0:7]}_{image_date}T{image_time}_SPM.tif')
+    # os.rename(f'{output_folder}/{tur_file}', f'{output_folder}/{tur_file[0:7]}_{image_date}T{image_time}_TUR.tif')
 
     if L2W_delete is False:
-        L2W_files = [file for file in os.listdir(output_folder) if 'L2W' in file and file.endswith('.nc')]
-
+        L2W_files = [f for f in all_files if 'L2W' in f and 'nc' in f]
         for L2W_file in L2W_files:
             all_files.remove(L2W_file)
 
-    all_files = [file for file in all_files if all(x not in file for x in ['CHL', 'SPM', 'TUR'])] # do not delete TUR, SPM, CHL
+    all_files = [file for file in all_files if all(x not in file for x in ['L2R.nc','L2R_GLAD.nc','flag','chl_re_mishra','chl_oc3', 'SPM', 'TUR', 'rhos.png', 'rhot.png'])] # do not delete TUR, SPM, CHL
     print(f'\n > deleting files: {all_files}')
     for file in all_files:
         try:
             os.remove(f'{output_folder}/{file}')
         except:
             pass
+
+def fillnodata(tiffile, shp=None, maskthreshold=None):
+    import rasterio
+    import rioxarray as rio
+    import rasterio.mask
+    import rasterio.plot
+    from rasterio.fill import fillnodata
+    import numpy as np
+    from shapely.geometry import mapping
+    import geopandas as gpd
+    import os
+
+    # read shapefile
+    shapefile = gpd.read_file(shp)
+
+    with rasterio.open(tiffile) as src:
+        profile = src.profile
+        arr = src.read(1)
+        arr = np.where(arr > maskthreshold, np.nan, arr)
+        arr_filled = fillnodata(arr, mask=src.read_masks(1), max_search_distance=10, smoothing_iterations=3)
+
+    newtif_file = "{}_crop.tif".format(tiffile.split(".tif")[0])
+
+    with rasterio.open(newtif_file, 'w', **profile) as dest:
+        dest.write_band(1, arr_filled)
+
+    with rasterio.open(newtif_file) as src:
+        out_image, out_transform = rasterio.mask.mask(src, shapefile.geometry.apply(mapping), crop=True)
+        out_meta = src.meta
+
+    out_meta.update({"driver": "GTiff",
+                     "height": out_image.shape[1],
+                     "width": out_image.shape[2],
+                     "transform": out_transform})
+
+    if os.path.isfile(newtif_file):
+        os.remove(newtif_file)
+
+    with rasterio.open(newtif_file, "w", **out_meta) as dest:
+        dest.write(out_image)
 
 def acolite_run(settings, inputfile=None, output=None):
     import glob, datetime, os
@@ -270,10 +315,25 @@ def acolite_run(settings, inputfile=None, output=None):
     for key in [key for key in processed[0].keys() if key in ['l1r', 'l2r', 'l2w']]:
         file = processed[0][key][0]
         output_folder = os.path.dirname(file)
+    L2W_delete=False
+    filetime=datetime.datetime.strptime(os.path.basename(processed[0]['input']).split("_")[2], "%Y%m%dT%H%M%S")
 
-    cleaning_4_CS(output_folder, L2W_delete=False)
+    try:
+        mask=setu['mask']
+    except KeyError:
+        mask=None
+
+    cleaning_4_CS(output_folder, filetime, mask, L2W_delete=False)
+
+    nametime=filetime.strftime("%Y_%m_%d")
+    tiffiles=glob.glob('{}/*{}*chl_re_mishraSMA.tif'.format(output_folder, nametime))
+    tiffiles.extend(glob.glob('{}/*{}*chl_oc3.tif'.format(output_folder, nametime)))
+    [fillnodata(f, mask, 500) for f in tiffiles]
+
+
+
     print('\n finished deleting files ') # debug
-    # AD
+
 
         ## end processing loop
     log.__del__()
