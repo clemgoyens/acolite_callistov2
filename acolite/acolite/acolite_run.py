@@ -44,6 +44,7 @@ def cleaning_4_CS(output_folder, filetime, L2W_delete=False):
             pass
 
 def fillandcrop(tiffile, shp=None, maskthreshold=None,maxsd=20, siter=5, filext=""):
+    # read shapefile
     import rasterio
     import rioxarray as rio
     import rasterio.mask
@@ -54,7 +55,6 @@ def fillandcrop(tiffile, shp=None, maskthreshold=None,maxsd=20, siter=5, filext=
     import geopandas as gpd
     import os
 
-    # read shapefile
     shapefile = gpd.read_file(shp)
 
     with rasterio.open(tiffile) as src:
@@ -86,6 +86,15 @@ def fillandcrop(tiffile, shp=None, maskthreshold=None,maxsd=20, siter=5, filext=
 def acolite_run(settings, inputfile=None, output=None):
     import glob, datetime, os
     import acolite as ac
+    import rasterio
+    import rioxarray as rio
+    import rasterio.mask
+    import rasterio.plot
+    from rasterio.fill import fillnodata
+    import numpy as np
+    from shapely.geometry import mapping
+    import geopandas as gpd
+    import os
 
     print('Running ACOLITE 4 CALLISTO - {}'.format(ac.version))
     ## time of processing start
@@ -312,16 +321,17 @@ def acolite_run(settings, inputfile=None, output=None):
 
     # AD
     # update files for CS platform
+    print(processed[0].keys())
     for key in [key for key in processed[0].keys() if key in ['l1r', 'l2r', 'l2w']]:
+        print(processed)
         file = processed[0][key][0]
         output_folder = os.path.dirname(file)
-    L2W_delete=False
+
     filetime=datetime.datetime.strptime(os.path.basename(processed[0]['input']).split("_")[2], "%Y%m%dT%H%M%S")
 
     try:
-        dir = os.getcwd()
-        maindir, acdir = dir.split("/acolite/")
-        mask= "{}/data/shapefiles/{}".format(maindir,setu['mask'])
+        mask= "{}/data/shapefiles/{}".format( os.path.dirname(ac.code_path),setu['mask'])
+        print(mask)
     except KeyError:
         mask=None
     print(mask)
@@ -330,11 +340,12 @@ def acolite_run(settings, inputfile=None, output=None):
 
 
     nametime=filetime.strftime("%Y_%m_%d")
-    tiffiles=glob.glob('{}/*{}*chl_re_mishraSMA.tif'.format(output_folder, nametime))
+    tiffiles=glob.glob('{}/*{}*chl_re_mishra*.tif'.format(output_folder, nametime))
     tiffiles.extend(glob.glob('{}/*{}*chl_re_mishra.tif'.format(output_folder, nametime)))
-    tiffiles.extend(glob.glob('{}/*{}*chl_oc3_SMA.tif'.format(output_folder, nametime)))
+    tiffiles.extend(glob.glob('{}/*{}*chl_oc3_*.tif'.format(output_folder, nametime)))
     tiffiles.extend(glob.glob('{}/*{}*chl_oc3.tif'.format(output_folder, nametime)))
 
+    print(l2r_setu['mask_and_fill'])
     if l2r_setu['mask_and_fill']:
         thr=l2r_setu['fill_mask_thr']
         maxsd=l2r_setu['fill_maximum_search_dist']
@@ -345,42 +356,49 @@ def acolite_run(settings, inputfile=None, output=None):
 
         [fillandcrop(tiffile=f, shp=mask, maskthreshold=thr,maxsd=maxsd,siter=siter) for f in tiffiles]
 
-    if l2r_setu['output_stats']:
-        shapefile = gpd.read_file(mask)
-        # Get list of geometries for all features in vector file
-        geom = [shapes for shapes in shapefile.geometry]
+        if l2r_setu['output_stats']:
+            shapefile = gpd.read_file(mask)
+            # Get list of geometries for all features in vector file
+            geom = [shapes for shapes in shapefile.geometry]
 
-        # Open example raster
-        raster = rasterio.open(r"{}".format(files[0]))
-        # Rasterize vector using the shape and coordinate system of the raster
-        rasterized = rasterio.features.rasterize(geom,
-                                                 out_shape=raster.shape,
-                                                 fill=0,
-                                                 out=None,
-                                                 transform=raster.transform,
-                                                 all_touched=False,
-                                                 default_value=1,
-                                                 dtype=None)
-        totpix=rasterized.sum()
+            # read oc3 crop file:
+            files = glob.glob("{}/*{}*_GLAD_chl_oc3_*_crop.tif".format(output_folder, nametime))
+            print(files)
+            ds = rio.open_rasterio(files[0], masked=True).squeeze()
 
-        # read oc3 crop file:
-        files = glob.glob("{}/*{}*_GLAD_chl_oc3_SMA_crop.tif".format(output_folder, nametime))
-        ds = rio.open_rasterio(files[0], masked=True).squeeze()
-        vals = ds.values
-        stat_names = ['perc_pixels','mean', 'median', 'std', 'var', 'min', 'max', '80p', '85p', '90p', '95p', '99p']
-        validpix=np.count_nonzero(~np.isnan(ds.values))
+            # Open example raster
+            raster = rasterio.open(r"{}".format(files[0]))
+            # Rasterize vector using the shape and coordinate system of the raster
+            rasterized = rasterio.features.rasterize(geom,
+                                                     out_shape=raster.shape,
+                                                     fill=0,
+                                                     out=None,
+                                                     transform=raster.transform,
+                                                     all_touched=False,
+                                                     default_value=1,
+                                                     dtype=None)
+            totpix=rasterized.sum()
+            vals = ds.values
+            stat_names = ['Percentage valid pixels','mean', 'median', 'std', 'var', 'min', 'max', '80p', '85p', '90p', '95p', '99p']
+            stat_units = ['%','ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l']
 
-        stats = np.array([validpix/totpix*100, np.nanmean(vals), np.nanmedian(vals),
-                          np.nanstd(vals),
-                          np.nanvar(vals),
-                          np.nanmin(vals),
-                          np.nanmax(vals),
-                          np.nanpercentile(vals, 80),
-                          np.nanpercentile(vals, 85),
-                          np.nanpercentile(vals, 90),
-                          np.nanpercentile(vals, 95),
-                          np.nanpercentile(vals, 99)])
-    print(stats)
+            validpix=np.count_nonzero(~np.isnan(ds.values))
+
+            stats = np.array([validpix/totpix*100, np.nanmean(vals), np.nanmedian(vals),
+                              np.nanstd(vals),
+                              np.nanvar(vals),
+                              np.nanmin(vals),
+                              np.nanmax(vals),
+                              np.nanpercentile(vals, 80),
+                              np.nanpercentile(vals, 85),
+                              np.nanpercentile(vals, 90),
+                              np.nanpercentile(vals, 95),
+                              np.nanpercentile(vals, 99)])
+
+            print("Statistics for image:{}".format(files[0]))
+
+            [print("{}:{:0.2f} {}".format(stat_names[i], stats[i], stat_units[i]), end=', ') for i in range(0,len(stats))]
+
     print('\n finished deleting files ') # debug
 
 
