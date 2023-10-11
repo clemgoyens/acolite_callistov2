@@ -346,6 +346,9 @@ def acolite_run(settings, inputfile=None, output=None):
 
     # add alert
 
+    (cpath)
+
+
 
     print('\n finished deleting files ') # debug
 
