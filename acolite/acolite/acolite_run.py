@@ -8,7 +8,7 @@
 ##                2023-03-29 (AD) modified for CS tiff
 
 # AD
-def cleaning_4_CS(output_folder, filetime, mask, L2W_delete=False):
+def cleaning_4_CS(output_folder, filetime, L2W_delete=False):
     import os
     import glob
     print("\n >> renaming for CALLISTO platform")
@@ -43,7 +43,7 @@ def cleaning_4_CS(output_folder, filetime, mask, L2W_delete=False):
         except:
             pass
 
-def fillnodata(tiffile, shp=None, maskthreshold=None):
+def fillandcrop(tiffile, shp=None, maskthreshold=None,maxsd=20, siter=5, filext=""):
     import rasterio
     import rioxarray as rio
     import rasterio.mask
@@ -61,9 +61,9 @@ def fillnodata(tiffile, shp=None, maskthreshold=None):
         profile = src.profile
         arr = src.read(1)
         arr = np.where(arr > maskthreshold, np.nan, arr)
-        arr_filled = fillnodata(arr, mask=src.read_masks(1), max_search_distance=10, smoothing_iterations=3)
+        arr_filled = fillnodata(arr, mask=src.read_masks(1), max_search_distance=maxsd, smoothing_iterations=siter)
 
-    newtif_file = "{}_crop.tif".format(tiffile.split(".tif")[0])
+    newtif_file = "{}_crop{}.tif".format(tiffile.split(".tif")[0],filext)
 
     with rasterio.open(newtif_file, 'w', **profile) as dest:
         dest.write_band(1, arr_filled)
@@ -322,14 +322,29 @@ def acolite_run(settings, inputfile=None, output=None):
         mask=setu['mask']
     except KeyError:
         mask=None
+    print(mask)
 
-    cleaning_4_CS(output_folder, filetime, mask, L2W_delete=False)
+    cleaning_4_CS(output_folder, filetime, L2W_delete=False)
+
 
     nametime=filetime.strftime("%Y_%m_%d")
     tiffiles=glob.glob('{}/*{}*chl_re_mishraSMA.tif'.format(output_folder, nametime))
+    tiffiles.extend(glob.glob('{}/*{}*chl_re_mishra.tif'.format(output_folder, nametime)))
+    tiffiles.extend(glob.glob('{}/*{}*chl_oc3_SMA.tif'.format(output_folder, nametime)))
     tiffiles.extend(glob.glob('{}/*{}*chl_oc3.tif'.format(output_folder, nametime)))
-    [fillnodata(f, mask, 500) for f in tiffiles]
 
+    if l2r_setu['mask_and_fill']:
+        thr=l2r_setu['fill_mask_thr']
+        maxsd=l2r_setu['fill_maximum_search_dist']
+        siter=l2r_setu['fill_smoothing_distance']
+        #maxsd = 20, siter = 5
+
+#        def fillandcrop(tiffile, shp=None, maskthreshold=None, maxsd=20, siter=5, filext=""):
+
+        [fillandcrop(tiffile=f, shp=mask, maskthreshold=thr,maxsd=maxsd,siter=siter) for f in tiffiles]
+
+
+    # add alert
 
 
     print('\n finished deleting files ') # debug

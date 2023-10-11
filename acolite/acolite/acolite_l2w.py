@@ -511,7 +511,8 @@ def acolite_l2w(gem,
                 par_atts[par_name]['C_{}'.format(nechad_par)] = C_Nechad
         ## end Dogliotti generic turbidity
         #############################
-
+        print("this is cur_par")
+        print(cur_par)
         #############################
         ## CHL_OC
         if 'chl_oc' in cur_par:
@@ -519,6 +520,7 @@ def acolite_l2w(gem,
             ## load config
             chl_oc_wl_diff = 20
             cfg = ac.parameters.chl_oc.coef()
+            print(cfg)
             if gem['gatts']['sensor'] not in cfg:
                 print('{} not configured for {}'.format(cur_par, gem['gatts']['sensor']))
                 continue
@@ -535,8 +537,8 @@ def acolite_l2w(gem,
                 par_name = 'chl_oc3'
             elif (cur_par == 'chl_oc3_BLK'):
                 par_name = 'chl_oc3_BLK'
-            elif (cur_par == 'chl_oc3_SMAT'):
-                par_name = 'chl_oc3_SMAT'
+            elif (cur_par == 'chl_oc3_SMA'):
+                par_name = 'chl_oc3_SMA'
             elif (cur_par == 'chl_oc4'):
                 par_name = 'chl_oc4'
             else:
@@ -826,7 +828,7 @@ def acolite_l2w(gem,
                     ndci = (tmp_data[1]-tmp_data[0]) / (tmp_data[1]+tmp_data[0])
                     par_data[par_name] = par_attributes['a'][0] + par_attributes['a'][1]*ndci + par_attributes['a'][2]*ndci*ndci
                     ndci = None
-                    par_data[par_name][par_data[par_name]<0]=np.nan
+                    #par_data[par_name][par_data[par_name]<0]=np.nan
                     par_atts[par_name] = par_attributes
                     tmp_data = None
                 ## end compute MISHRA
@@ -838,7 +840,7 @@ def acolite_l2w(gem,
                     ndci = (tmp_data[1]-tmp_data[0]) / (tmp_data[1]+tmp_data[0])
                     par_data[par_name] = par_attributes['a'][0] + par_attributes['a'][1]*ndci + par_attributes['a'][2]*ndci*ndci
                     ndci = None
-                    par_data[par_name][par_data[par_name]<0]=np.nan
+                    #par_data[par_name][par_data[par_name]<0]=np.nan
                     par_atts[par_name] = par_attributes
                     tmp_data = None
                 ## end compute MISHRA BLK
@@ -851,7 +853,7 @@ def acolite_l2w(gem,
                     par_data[par_name] = par_attributes['a'][0] + par_attributes['a'][1] * ndci + \
                                          par_attributes['a'][2] * ndci * ndci
                     ndci = None
-                    par_data[par_name][par_data[par_name] < 0] = np.nan
+                    #par_data[par_name][par_data[par_name] < 0] = np.nan
                     par_atts[par_name] = par_attributes
                     tmp_data = None
                 ## end compute MISHRA BLK
