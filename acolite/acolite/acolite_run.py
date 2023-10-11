@@ -319,7 +319,9 @@ def acolite_run(settings, inputfile=None, output=None):
     filetime=datetime.datetime.strptime(os.path.basename(processed[0]['input']).split("_")[2], "%Y%m%dT%H%M%S")
 
     try:
-        mask=setu['mask']
+        dir = os.getcwd()
+        maindir, acdir = dir.split("/acolite/")
+        mask= "{}/data/shapefiles/{}".format(maindir,setu['mask'])
     except KeyError:
         mask=None
     print(mask)
@@ -343,13 +345,42 @@ def acolite_run(settings, inputfile=None, output=None):
 
         [fillandcrop(tiffile=f, shp=mask, maskthreshold=thr,maxsd=maxsd,siter=siter) for f in tiffiles]
 
+    if l2r_setu['output_stats']:
+        shapefile = gpd.read_file(mask)
+        # Get list of geometries for all features in vector file
+        geom = [shapes for shapes in shapefile.geometry]
 
-    # add alert
+        # Open example raster
+        raster = rasterio.open(r"{}".format(files[0]))
+        # Rasterize vector using the shape and coordinate system of the raster
+        rasterized = rasterio.features.rasterize(geom,
+                                                 out_shape=raster.shape,
+                                                 fill=0,
+                                                 out=None,
+                                                 transform=raster.transform,
+                                                 all_touched=False,
+                                                 default_value=1,
+                                                 dtype=None)
+        totpix=rasterized.sum()
 
-    (cpath)
+        # read oc3 crop file:
+        files = glob.glob("{}/*{}*_GLAD_chl_oc3_SMA_crop.tif".format(output_folder, nametime))
+        ds = rio.open_rasterio(files[0], masked=True).squeeze()
+        vals = ds.values
+        stat_names = ['perc_pixels','mean', 'median', 'std', 'var', 'min', 'max', '80p', '85p', '90p', '95p', '99p']
+        validpix=np.count_nonzero(~np.isnan(ds.values))
 
-
-
+        stats = np.array([validpix/totpix*100, np.nanmean(vals), np.nanmedian(vals),
+                          np.nanstd(vals),
+                          np.nanvar(vals),
+                          np.nanmin(vals),
+                          np.nanmax(vals),
+                          np.nanpercentile(vals, 80),
+                          np.nanpercentile(vals, 85),
+                          np.nanpercentile(vals, 90),
+                          np.nanpercentile(vals, 95),
+                          np.nanpercentile(vals, 99)])
+    print(stats)
     print('\n finished deleting files ') # debug
 
 
