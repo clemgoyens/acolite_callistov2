@@ -402,7 +402,6 @@ def acolite_run(settings, inputfile=None, output=None):
 
     #with open('{}/alert_{}.csv'.format(output_folder, nametime), 'w', newline='') as alert:
     with open('{}/alert.csv'.format(output_folder), 'w', newline='') as alert:
-
         alert.write(stats_)
         alert.close()
 
