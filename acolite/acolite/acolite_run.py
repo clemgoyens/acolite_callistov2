@@ -95,6 +95,8 @@ def acolite_run(settings, inputfile=None, output=None):
     from shapely.geometry import mapping
     import geopandas as gpd
     import os
+    import csv
+
 
     print('Running ACOLITE 4 CALLISTO - {}'.format(ac.version))
     ## time of processing start
@@ -395,9 +397,14 @@ def acolite_run(settings, inputfile=None, output=None):
                               np.nanpercentile(vals, 95),
                               np.nanpercentile(vals, 99)])
 
-            print("Statistics for image:{}".format(files[0]))
+            stats_ = ["{}:{:0.2f} {}".format(stat_names[i], stats[i], stat_units[i]) for i in range(0, len(stats))]
+            stats_="Statistics for image {}:, {}".format(os.path.basename(files[0]),(", ").join(stats_))
 
-            [print("{}:{:0.2f} {}".format(stat_names[i], stats[i], stat_units[i]), end=', ') for i in range(0,len(stats))]
+    #with open('{}/alert_{}.csv'.format(output_folder, nametime), 'w', newline='') as alert:
+    with open('{}/alert.csv'.format(output_folder), 'w', newline='') as alert:
+
+        alert.write(stats_)
+        alert.close()
 
     print('\n finished deleting files ') # debug
 
