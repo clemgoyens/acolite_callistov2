@@ -347,11 +347,11 @@ def acolite_run(settings, inputfile=None, output=None):
     tiffiles.extend(glob.glob('{}/*{}*chl_oc3_*.tif'.format(output_folder, nametime)))
     tiffiles.extend(glob.glob('{}/*{}*chl_oc3.tif'.format(output_folder, nametime)))
 
-    print(l2r_setu['mask_and_fill'])
+    print(l2r_setu['fill_mask_thr'])
     if l2r_setu['mask_and_fill']:
-        thr=l2r_setu['fill_mask_thr']
-        maxsd=l2r_setu['fill_maximum_search_dist']
-        siter=l2r_setu['fill_smoothing_distance']
+        thr=float(l2r_setu['fill_mask_thr'])
+        maxsd=float(l2r_setu['fill_maximum_search_dist'])
+        siter=float(l2r_setu['fill_smoothing_distance'])
         #maxsd = 20, siter = 5
 
 #        def fillandcrop(tiffile, shp=None, maskthreshold=None, maxsd=20, siter=5, filext=""):
@@ -400,10 +400,10 @@ def acolite_run(settings, inputfile=None, output=None):
             stats_ = ["{}:{:0.2f} {}".format(stat_names[i], stats[i], stat_units[i]) for i in range(0, len(stats))]
             stats_="Statistics for image {}:, {}".format(os.path.basename(files[0]),(", ").join(stats_))
 
-    #with open('{}/alert_{}.csv'.format(output_folder, nametime), 'w', newline='') as alert:
-    with open('{}/alert.csv'.format(output_folder), 'w', newline='') as alert:
-        alert.write(stats_)
-        alert.close()
+            #with open('{}/alert_{}.csv'.format(output_folder, nametime), 'w', newline='') as alert:
+            with open('{}/alert.csv'.format(output_folder), 'w', newline='') as alert:
+                alert.write(stats_)
+                alert.close()
 
     print('\n finished deleting files ') # debug
 
