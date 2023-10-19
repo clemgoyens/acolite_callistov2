@@ -347,7 +347,10 @@ def acolite_run(settings, inputfile=None, output=None):
     tiffiles.extend(glob.glob('{}/*{}*chl_oc3_*.tif'.format(output_folder, nametime)))
     tiffiles.extend(glob.glob('{}/*{}*chl_oc3.tif'.format(output_folder, nametime)))
 
-    print(l2r_setu['fill_mask_thr'])
+    print(output_folder)
+
+    print(l2r_setu['mask_and_fill'])
+
     if l2r_setu['mask_and_fill']:
         thr=float(l2r_setu['fill_mask_thr'])
         maxsd=float(l2r_setu['fill_maximum_search_dist'])
@@ -357,6 +360,8 @@ def acolite_run(settings, inputfile=None, output=None):
 #        def fillandcrop(tiffile, shp=None, maskthreshold=None, maxsd=20, siter=5, filext=""):
 
         [fillandcrop(tiffile=f, shp=mask, maskthreshold=thr,maxsd=maxsd,siter=siter) for f in tiffiles]
+
+        print(l2r_setu['output_stats'])
 
         if l2r_setu['output_stats']:
             shapefile = gpd.read_file(mask)
@@ -381,24 +386,29 @@ def acolite_run(settings, inputfile=None, output=None):
                                                      dtype=None)
             totpix=rasterized.sum()
             vals = ds.values
-            stat_names = ['Percentage valid pixels','mean', 'median', 'std', 'var', 'min', 'max', '80p', '85p', '90p', '95p', '99p']
-            stat_units = ['%','ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l']
+            # stat_names = ['Percentage valid pixels','mean', 'median', 'std', 'var', 'min', 'max', '80p', '85p', '90p', '95p', '99p']
+            # stat_units = ['%','ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l', 'ug/l']
 
             validpix=np.count_nonzero(~np.isnan(ds.values))
 
-            stats = np.array([validpix/totpix*100, np.nanmean(vals), np.nanmedian(vals),
-                              np.nanstd(vals),
-                              np.nanvar(vals),
-                              np.nanmin(vals),
-                              np.nanmax(vals),
-                              np.nanpercentile(vals, 80),
-                              np.nanpercentile(vals, 85),
-                              np.nanpercentile(vals, 90),
-                              np.nanpercentile(vals, 95),
-                              np.nanpercentile(vals, 99)])
+            # stats = np.array([validpix/totpix*100, np.nanmean(vals), np.nanmedian(vals),
+            #                   np.nanstd(vals),
+            #                   np.nanvar(vals),
+            #                   np.nanmin(vals),
+            #                   np.nanmax(vals),
+            #                   np.nanpercentile(vals, 80),
+            #                   np.nanpercentile(vals, 85),
+            #                   np.nanpercentile(vals, 90),
+            #                   np.nanpercentile(vals, 95),
+            #                   np.nanpercentile(vals, 99)])
 
-            stats_ = ["{}:{:0.2f} {}".format(stat_names[i], stats[i], stat_units[i]) for i in range(0, len(stats))]
-            stats_="Statistics for image {}:, {}".format(os.path.basename(files[0]),(", ").join(stats_))
+#            stats_ = ["{}:{:0.2f} {}".format(stat_names[i], stats[i], stat_units[i]) for i in range(0, len(stats))]
+            stats_=("A new chlorophyll map is available (Acquisition date: {}, chlorophyll concentration: {:0.2f}% of "
+                    "classified pixels, median value {:0.2f}, p90 {:0.2f}").format(
+                nametime,validpix/totpix*100,np.nanmedian(vals),np.nanpercentile(vals, 90))
+            print(stats_)
+
+#            " A new chlorophyll map is available (Acquisition date: XX/XX/XXXX, chlorophyll concentration (median value): XXXXX µg/L, XX% of classified pixels"
 
             #with open('{}/alert_{}.csv'.format(output_folder, nametime), 'w', newline='') as alert:
             with open('{}/alert.csv'.format(output_folder), 'w', newline='') as alert:
