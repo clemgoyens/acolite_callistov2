@@ -404,7 +404,7 @@ def acolite_run(settings, inputfile=None, output=None):
 
 #            stats_ = ["{}:{:0.2f} {}".format(stat_names[i], stats[i], stat_units[i]) for i in range(0, len(stats))]
             stats_=("A new chlorophyll map is available (Acquisition date: {}, chlorophyll concentration: {:0.2f}% of "
-                    "classified pixels, median value {:0.2f}, p90 {:0.2f}").format(
+                    "classified pixels, median value is {:0.2f} ug/l and p90 is {:0.2f} ug/l").format(
                 nametime,validpix/totpix*100,np.nanmedian(vals),np.nanpercentile(vals, 90))
             print(stats_)
 
