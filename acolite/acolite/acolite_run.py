@@ -364,8 +364,8 @@ def acolite_run(settings, inputfile=None, output=None):
         [fillandcrop(tiffile=f, shp=mask, maskthreshold=thr,maxsd=maxsd,siter=siter) for f in tiffiles]
 
         print(l2r_setu['output_stats'])
-        siteid=setu['siteid']
-        chla_conc_thr=setu['chla_conc_thr']
+        siteid=str(setu['siteid'])
+        chla_conc_thr=float(setu['chla_conc_thr'])
 
         if l2r_setu['output_stats']:
             shapefile = gpd.read_file(mask)
