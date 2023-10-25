@@ -109,6 +109,8 @@ def acolite_run(settings, inputfile=None, output=None):
     if 'output' not in setu: setu['output'] = os.getcwd()
     if 'verbosity' in setu: ac.config['verbosity'] = int(setu['verbosity'])
 
+    siteid=l2r_setu['siteid']
+
     ## workaround for outputting rhorc and bt
     if 'l2w_parameters' in setu:
         if setu['l2w_parameters'] is not None:
@@ -403,17 +405,18 @@ def acolite_run(settings, inputfile=None, output=None):
             #                   np.nanpercentile(vals, 99)])
 
 #            stats_ = ["{}:{:0.2f} {}".format(stat_names[i], stats[i], stat_units[i]) for i in range(0, len(stats))]
-            stats_=("A new chlorophyll map is available (Acquisition date: {}, chlorophyll concentration: {:0.2f}% of "
-                    "classified pixels, median value is {:0.2f} ug/l and p90 is {:0.2f} ug/l").format(
+            stats_=("A new chlorophyll map is available for {} (Acquisition date: {}, chlorophyll concentration: {:0.2f}% of "
+                    "classified pixels, median value is {:0.2f} ug/l and p90 is {:0.2f} ug/l").format(siteid,
                 nametime,validpix/totpix*100,np.nanmedian(vals),np.nanpercentile(vals, 90))
             print(stats_)
 
 #            " A new chlorophyll map is available (Acquisition date: XX/XX/XXXX, chlorophyll concentration (median value): XXXXX µg/L, XX% of classified pixels"
 
             #with open('{}/alert_{}.csv'.format(output_folder, nametime), 'w', newline='') as alert:
-            with open('{}/alert.csv'.format(output_folder), 'w', newline='') as alert:
-                alert.write(stats_)
-                alert.close()
+            if np.nanmedian(vals)>=chla_conc_thr:
+                with open('{}/alert.csv'.format(output_folder), 'w', newline='') as alert:
+                    alert.write(stats_)
+                    alert.close()
 
     print('\n finished deleting files ') # debug
 

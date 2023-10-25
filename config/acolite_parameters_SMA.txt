@@ -2,6 +2,7 @@
 ## Written at 2022-03-23 09:58:38
 inputfile=/media/cgoyens/Elements/home/cgoyens/OneDrive/BackUpThinkpadClem/Projects/CALLISTO/WP3/SMA/L1C/
 output=/home/cgoyens/BackUpThinkpadClem/Projects/CALLISTO/WP3/SMA/test/
+siteid=SMA
 geometry_type=grids
 limit = 44.957, 7.676, 44.972, 7.704
 l2w_parameters= chl_oc3_SMA, spm_nechad2010, tur_nechad2009
@@ -92,3 +93,4 @@ fill_mask_thr=250
 fill_maximum_search_dist=1
 fill_smoothing_distance=3
 output_stats=True
+chla_conc_thr=0
