@@ -35,7 +35,7 @@ def cleaning_4_CS(output_folder, filetime, L2W_delete=False):
         for L2W_file in L2W_files:
             all_files.remove(L2W_file)
 
-    all_files = [file for file in all_files if all(x not in file for x in ['L2R.nc','L2R_GLAD.nc','flag','chl_re_mishra','chl_oc3', 'SPM', 'TUR', 'rhos.png', 'rhot.png'])] # do not delete TUR, SPM, CHL
+    all_files = [file for file in all_files if all(x not in file for x in ['L2R.nc','L2R_GLAD.nc','flag','chl_re_mishra','chl_oc3','.png','SPM', 'TUR', 'rhos.png', 'rhot.png'])] # do not delete TUR, SPM, CHL
     print(f'\n > deleting files: {all_files}')
     for file in all_files:
         try:
@@ -341,12 +341,14 @@ def acolite_run(settings, inputfile=None, output=None):
 
     cleaning_4_CS(output_folder, filetime, L2W_delete=False)
 
-
+    siteid = str(setu['siteid'])
     nametime=filetime.strftime("%Y_%m_%d")
     tiffiles=glob.glob('{}/*{}*chl_re_mishra*.tif'.format(output_folder, nametime))
     tiffiles.extend(glob.glob('{}/*{}*chl_re_mishra.tif'.format(output_folder, nametime)))
-    tiffiles.extend(glob.glob('{}/*{}*chl_oc3_*.tif'.format(output_folder, nametime)))
+    tiffiles.extend(glob.glob('{}/*{}*chl_oc3_{}.tif'.format(output_folder, nametime, siteid)))
     tiffiles.extend(glob.glob('{}/*{}*chl_oc3.tif'.format(output_folder, nametime)))
+    tiffiles.extend(glob.glob('{}/*{}*TUR_Nechad2009_665.tif'.format(output_folder, nametime)))
+    tiffiles.extend(glob.glob('{}/*{}*SPM_Nechad2010_665.tif'.format(output_folder, nametime)))
 
     print(output_folder)
 
@@ -373,7 +375,7 @@ def acolite_run(settings, inputfile=None, output=None):
             geom = [shapes for shapes in shapefile.geometry]
 
             # read oc3 crop file:
-            files = glob.glob("{}/*{}*_GLAD_chl_oc3_*_crop.tif".format(output_folder, nametime))
+            files = glob.glob("{}/*{}*_GLAD_chl_oc3_{}_crop.tif".format(output_folder, nametime, siteid))
             print(files)
             ds = rio.open_rasterio(files[0], masked=True).squeeze()
 
@@ -413,17 +415,20 @@ def acolite_run(settings, inputfile=None, output=None):
                 sitename=""
 #            stats_ = ["{}:{:0.2f} {}".format(stat_names[i], stats[i], stat_units[i]) for i in range(0, len(stats))]
             stats_=("A new chlorophyll map is available for {} (Acquisition date: {}, the chlorophyll-a concentration median value is {:0.2f} ug/l and the p90 is {:0.2f} ug/l for {:0.2f}% of "
-                    "classified pixels").format(sitename,
-                nametime,validpix/totpix*100,np.nanmedian(vals),np.nanpercentile(vals, 90))
+                    "classified pixels").format(sitename, filetime.strftime("%d/%m/%Y"),np.nanmedian(vals),np.nanpercentile(vals, 90),validpix/totpix*100)
             print(stats_)
 
             #            " A new chlorophyll map is available (Acquisition date: XX/XX/XXXX, chlorophyll concentration (median value): XXXXX µg/L, XX% of classified pixels"
 
             #with open('{}/alert_{}.csv'.format(output_folder, nametime), 'w', newline='') as alert:
-            if np.nanmedian(vals)>=chla_conc_thr:
-                with open('{}/alert.csv'.format(output_folder), 'w', newline='') as alert:
-                    alert.write(stats_)
-                    alert.close()
+
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)
+                if np.nanmedian(vals)>=chla_conc_thr:
+                    with open('{}/alert.csv'.format(output_folder), 'w', newline='') as alert:
+                        alert.write(stats_)
+                        alert.close()
 
     print('\n finished deleting files ') # debug
 

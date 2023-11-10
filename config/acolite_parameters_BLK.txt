@@ -1,9 +1,10 @@
 ## ACOLITE settings
 ## Written at 2022-03-23 09:58:38
-inputfile=/media/cgoyens/Elements/home/cgoyens/OneDrive/BackUpThinkpadClem/Projects/CALLISTO/WP3/SMA/L1C/
-output=/home/cgoyens/BackUpThinkpadClem/Projects/CALLISTO/WP3/SMA/test/
+inputfile=/input/
+output=output/
+siteid=BLK
 geometry_type=grids
-limit=50.98,2.817,50.995,2.843
+limit=50.98, 2.817, 50.995, 2.843
 l2w_parameters= chl_oc3_BLK, spm_nechad2010, tur_nechad2009
 l1r_nc_delete=True
 l2r_nc_delete=False
@@ -88,9 +89,8 @@ dsf_aot_estimate=fixed
 glad_write_xy=True
 mask=BLK/BlankaartWater_Polygon.shp
 mask_and_fill=True
-fill_mask_thr=250
+fill_mask_thr=300
 fill_maximum_search_dist=1
 fill_smoothing_distance=3
 output_stats=True
 chla_conc_thr=15
-siteid=BLK
